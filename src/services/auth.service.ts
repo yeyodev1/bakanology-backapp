@@ -207,7 +207,7 @@ export async function deleteProfilePicture(userId: string) {
     // Ignore Cloudinary errors — image may not exist
   }
 
-  user.profilePicture = null;
+  user.profilePicture = undefined;
   await user.save();
 
   return sanitizeUser(user);
