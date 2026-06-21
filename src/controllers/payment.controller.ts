@@ -10,16 +10,15 @@ export async function prepare(
   next: NextFunction,
 ) {
   try {
-    const { email, name, lastName } = req.body;
+    const { email, name, lastName, origin } = req.body;
     if (!email || !name || !lastName) {
       throw new CustomError("Incomplete data", 400);
     }
 
-    const result = await paymentService.prepareAnnualPayment({
-      email,
-      name,
-      lastName,
-    });
+    const result = await paymentService.prepareAnnualPayment(
+      { email, name, lastName },
+      origin,
+    );
     successResponse(res, result, "Payment prepared successfully");
   } catch (error) {
     next(error);
@@ -32,16 +31,15 @@ export async function prepareMonthly(
   next: NextFunction,
 ) {
   try {
-    const { email, name, lastName } = req.body;
+    const { email, name, lastName, origin } = req.body;
     if (!email || !name || !lastName) {
       throw new CustomError("Incomplete data", 400);
     }
 
-    const result = await paymentService.prepareMonthlyPayment({
-      email,
-      name,
-      lastName,
-    });
+    const result = await paymentService.prepareMonthlyPayment(
+      { email, name, lastName },
+      origin,
+    );
     successResponse(res, result, "Payment prepared successfully");
   } catch (error) {
     next(error);
@@ -54,7 +52,7 @@ export async function prepareBox(
   next: NextFunction,
 ) {
   try {
-    const { email, name, lastName, plan } = req.body;
+    const { email, name, lastName, plan, origin } = req.body;
     if (!email || !name || !lastName || !plan) {
       throw new CustomError("Incomplete data", 400);
     }
@@ -64,8 +62,8 @@ export async function prepareBox(
 
     const result =
       plan === "annual"
-        ? await paymentService.prepareAnnualPaymentBox({ email, name, lastName })
-        : await paymentService.prepareMonthlyPaymentBox({ email, name, lastName });
+        ? await paymentService.prepareAnnualPaymentBox({ email, name, lastName }, origin)
+        : await paymentService.prepareMonthlyPaymentBox({ email, name, lastName }, origin);
     successResponse(res, result, "Payment box prepared successfully");
   } catch (error) {
     next(error);

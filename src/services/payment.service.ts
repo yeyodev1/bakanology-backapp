@@ -87,11 +87,16 @@ async function preparePaymentRecord(
   return { amount, amountCents, clientTransactionId, isNewUser: isNew, plainPassword, userId };
 }
 
+function frontendUrl(origin?: string): string {
+  return origin || process.env.FRONTEND_URL || "";
+}
+
 async function preparePayment(
   plan: "monthly" | "annual",
   amountEnvVar: string | undefined,
   reference: string,
   guestData: { email: string; name: string; lastName: string },
+  origin?: string,
 ) {
   const { amountCents, clientTransactionId, isNewUser, plainPassword, userId } =
     await preparePaymentRecord(plan, amountEnvVar, guestData);
@@ -106,8 +111,8 @@ async function preparePayment(
         clientTransactionId,
         storeId: process.env.PAYPHONE_STORE_ID,
         reference,
-        responseUrl: `${process.env.FRONTEND_URL}/pay-response`,
-        cancellationUrl: `${process.env.FRONTEND_URL}/`,
+        responseUrl: `${frontendUrl(origin)}/pay-response`,
+        cancellationUrl: `${frontendUrl(origin)}/`,
       },
       { headers: getAuthHeaders() },
     );
@@ -135,37 +140,36 @@ async function preparePayment(
   }
 }
 
-export async function prepareAnnualPayment(guestData: {
-  email: string;
-  name: string;
-  lastName: string;
-}) {
+export async function prepareAnnualPayment(
+  guestData: { email: string; name: string; lastName: string },
+  origin?: string,
+) {
   return preparePayment(
     "annual",
     process.env.ANNUAL_PRICE,
     "Comunidad anual cerrada - Luisa Pita Bejarano",
     guestData,
+    origin,
   );
 }
 
-export async function prepareMonthlyPayment(guestData: {
-  email: string;
-  name: string;
-  lastName: string;
-}) {
+export async function prepareMonthlyPayment(
+  guestData: { email: string; name: string; lastName: string },
+  origin?: string,
+) {
   return preparePayment(
     "monthly",
     process.env.MONTHLY_PRICE,
     "Mensualidad - Luisa Pita Bejarano Academy",
     guestData,
+    origin,
   );
 }
 
-export async function prepareAnnualPaymentBox(guestData: {
-  email: string;
-  name: string;
-  lastName: string;
-}) {
+export async function prepareAnnualPaymentBox(
+  guestData: { email: string; name: string; lastName: string },
+  origin?: string,
+) {
   const { amountCents, clientTransactionId } = await preparePaymentRecord(
     "annual",
     process.env.ANNUAL_PRICE,
@@ -179,15 +183,14 @@ export async function prepareAnnualPaymentBox(guestData: {
     currency: "USD",
     clientTransactionId,
     reference: "Comunidad anual cerrada - Luisa Pita Bejarano",
-    responseUrl: `${process.env.FRONTEND_URL}/pay-response`,
+    responseUrl: `${frontendUrl(origin)}/pay-response`,
   };
 }
 
-export async function prepareMonthlyPaymentBox(guestData: {
-  email: string;
-  name: string;
-  lastName: string;
-}) {
+export async function prepareMonthlyPaymentBox(
+  guestData: { email: string; name: string; lastName: string },
+  origin?: string,
+) {
   const { amountCents, clientTransactionId } = await preparePaymentRecord(
     "monthly",
     process.env.MONTHLY_PRICE,
@@ -201,7 +204,7 @@ export async function prepareMonthlyPaymentBox(guestData: {
     currency: "USD",
     clientTransactionId,
     reference: "Mensualidad - Luisa Pita Bejarano Academy",
-    responseUrl: `${process.env.FRONTEND_URL}/pay-response`,
+    responseUrl: `${frontendUrl(origin)}/pay-response`,
   };
 }
 
