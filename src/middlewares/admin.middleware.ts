@@ -2,7 +2,7 @@ import { Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { AuthRequest, JwtPayload } from "../types/AuthRequest";
 
-export function authMiddleware(
+export function adminMiddleware(
   req: AuthRequest,
   res: Response,
   next: NextFunction,
@@ -21,6 +21,12 @@ export function authMiddleware(
       token,
       process.env.JWT_SECRET as string,
     ) as JwtPayload;
+
+    if (decoded.accountType !== "admin") {
+      res.status(403).json({ message: "Forbidden: admin access required" });
+      return;
+    }
+
     req.user = decoded;
     next();
   } catch (error) {

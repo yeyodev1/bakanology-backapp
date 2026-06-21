@@ -8,4 +8,5 @@ export interface JwtPayload {
 
 export interface AuthRequest extends Request {
   user?: JwtPayload;
+  file?: Express.Multer.File;
 }

@@ -1,12 +1,13 @@
-import dotenv from "dotenv";
+import "dotenv/config";
 import { dbConnect } from "./config/mongo";
 import { createApp } from "./app";
+import { seedAdmin } from "./scripts/seed-admin";
 
 const port = process.env.PORT || 8100;
 
 async function main() {
-  dotenv.config();
   await dbConnect();
+  await seedAdmin();
 
   const { app, server } = createApp();
 
