@@ -3,7 +3,7 @@ import { dbConnect } from "./config/mongo";
 import { createApp } from "./app";
 import { seedAdmin } from "./scripts/seed-admin";
 
-const port = process.env.PORT || 8100;
+const port = process.env.PORT || 8101;
 
 async function main() {
   await dbConnect();

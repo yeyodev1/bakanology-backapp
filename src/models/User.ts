@@ -15,6 +15,7 @@ export interface IUser extends Document {
   subscriptionStatus: "none" | "pending" | "active" | "canceled";
   accessUntil: Date | null;
   foundingMember: boolean;
+  stripeCustomerId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -45,6 +46,7 @@ const userSchema = new Schema<IUser>(
     },
     accessUntil: { type: Date, default: null },
     foundingMember: { type: Boolean, default: false },
+    stripeCustomerId: { type: String, default: null },
   },
   { timestamps: true },
 );

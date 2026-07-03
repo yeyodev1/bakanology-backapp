@@ -10,7 +10,8 @@ function addMonths(date: Date, months: number): Date {
   return result;
 }
 
-function planMonths(plan: "monthly" | "annual"): number {
+function planMonths(plan: "monthly" | "annual" | "lifetime"): number {
+  if (plan === "lifetime") return 1200;
   return plan === "annual" ? 12 : 1;
 }
 
@@ -38,7 +39,7 @@ async function main() {
       .lean(),
   ]);
 
-  type PaymentLike = { plan: "monthly" | "annual"; date: Date };
+  type PaymentLike = { plan: "monthly" | "annual" | "lifetime"; date: Date };
 
   const candidates: PaymentLike[] = [];
   if (latestPayphone) {
