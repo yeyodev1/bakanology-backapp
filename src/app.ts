@@ -12,6 +12,8 @@ const whitelist = [
   "http://localhost:8101",
   "https://testing-storybrand-frontend.bakano.ec",
   "https://bakanology.bakano.ec",
+  "https://bakanology.com",
+  "https://www.bakanology.com",
 ];
 
 const corsOptions: cors.CorsOptions = {

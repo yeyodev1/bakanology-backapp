@@ -1,8 +1,12 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const BRAND = "Bakanology Academy";
+
+function getResend() {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error("RESEND_API_KEY is required");
+  return new Resend(apiKey);
+}
 
 export async function sendVerificationEmail(
   to: string,
@@ -11,7 +15,7 @@ export async function sendVerificationEmail(
 ): Promise<void> {
   const link = `${frontendUrl}/verificar-email?token=${token}`;
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: process.env.RESEND_FROM_EMAIL as string,
     to,
     subject: `Verifica tu cuenta — ${BRAND}`,
@@ -29,7 +33,7 @@ export async function sendVerificationEmail(
 }
 
 export async function sendLoginEmail(to: string, name: string): Promise<void> {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: process.env.RESEND_FROM_EMAIL as string,
     to,
     subject: `Nuevo inicio de sesión — ${BRAND}`,
@@ -49,7 +53,7 @@ export async function sendAdminInviteEmail(
   password: string,
   verificationLink: string,
 ): Promise<void> {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: process.env.RESEND_FROM_EMAIL as string,
     to,
     subject: `Tu invitación a ${BRAND}`,
@@ -83,7 +87,7 @@ export async function sendAccessExtendedEmail(
     year: "numeric",
   });
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: process.env.RESEND_FROM_EMAIL as string,
     to,
     subject: `Tu acceso fue extendido — ${BRAND}`,
@@ -103,7 +107,7 @@ export async function sendPasswordResetEmail(
   name: string,
   resetUrl: string,
 ): Promise<void> {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: process.env.RESEND_FROM_EMAIL as string,
     to,
     subject: `Restablece tu contraseña — ${BRAND}`,
@@ -125,7 +129,7 @@ export async function sendPasswordResetConfirmationEmail(
   to: string,
   name: string,
 ): Promise<void> {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: process.env.RESEND_FROM_EMAIL as string,
     to,
     subject: `Contraseña actualizada — ${BRAND}`,
@@ -145,7 +149,7 @@ export async function sendPaymentWelcomeEmail(
   password: string,
   loginUrl: string,
 ): Promise<void> {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: process.env.RESEND_FROM_EMAIL as string,
     to,
     subject: `Bienvenido a ${BRAND}`,
@@ -185,7 +189,7 @@ export async function sendPaymentConfirmationEmail(
   name: string,
   loginUrl: string,
 ): Promise<void> {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: process.env.RESEND_FROM_EMAIL as string,
     to,
     subject: `Pago confirmado — ${BRAND}`,
@@ -229,7 +233,7 @@ export async function sendManualPaymentReceiptEmail(
     year: "numeric",
   });
 
-  await resend.emails.send({
+  await getResend().emails.send({
     from: process.env.RESEND_FROM_EMAIL as string,
     to,
     subject: `Comprobante de pago registrado — ${BRAND}`,
