@@ -159,7 +159,7 @@ export async function deleteManualPayment(paymentId: string) {
 }
 
 export async function getUserPaymentHistory(userId: string) {
-  const [manualPayments, payphonePayments] = await Promise.all([
+  const [manualPayments, stripePayments] = await Promise.all([
     ManualPayment.find({ user: userId })
       .sort({ createdAt: -1 })
       .lean(),
@@ -180,14 +180,14 @@ export async function getUserPaymentHistory(userId: string) {
       notes: payment.notes,
       createdAt: payment.createdAt,
     })),
-    ...payphonePayments.map((payment) => ({
+    ...stripePayments.map((payment) => ({
       id: payment._id.toString(),
-      type: "payphone" as const,
+      type: "stripe" as const,
       plan: payment.plan,
       amount: payment.amount,
       currency: payment.currency,
       status: payment.status,
-      payphoneTransactionId: payment.payphoneTransactionId,
+      stripeSessionId: payment.stripeSessionId,
       clientTransactionId: payment.clientTransactionId,
       createdAt: payment.createdAt,
     })),

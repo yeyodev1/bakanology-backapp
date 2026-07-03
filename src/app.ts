@@ -5,13 +5,13 @@ import routerApi from "./routes";
 import { globalErrorHandler } from "./middlewares/globalErrorHandler.middleware";
 
 const whitelist = [
-  "http://localhost:8100",
+  "http://localhost:8101",
   "http://localhost:8080",
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:8101",
   "https://testing-storybrand-frontend.bakano.ec",
-  "https://luisapitabejarano.com",
+  "https://bakanology.bakano.ec",
 ];
 
 const corsOptions: cors.CorsOptions = {

@@ -1,4 +1,4 @@
-# Luisa Pita Bejarano Academy — Backend
+# Bakanology Academy — Backend
 
 ## Stack
 - Express 5 (CommonJS target) + TypeScript + Mongoose
