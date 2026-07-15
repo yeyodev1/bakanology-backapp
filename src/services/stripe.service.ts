@@ -258,10 +258,13 @@ export async function createCheckoutSession(input: {
   const lockedUser = lockAcquired ? user : await acquireCheckoutLock(userId);
   try {
     if (lockedUser.stripeSubscriptionId) {
-      throw new CustomError("This account already has an active monthly subscription", 409);
+      throw new CustomError(
+        "Ya tienes una suscripción mensual activa. Puedes administrarla o cancelarla en https://bakanology.com/app/pagos",
+        409,
+      );
     }
     if (lockedUser.foundingMember) {
-      throw new CustomError("This account already has lifetime access", 409);
+      throw new CustomError("Ya tienes acceso de por vida a Bakanology.", 409);
     }
     await cancelPendingCheckouts(userId);
 
@@ -525,11 +528,19 @@ export async function cancelUserSubscription(userId: string) {
   const user = await User.findById(userId);
   if (!user) throw new CustomError("User not found", 404);
   if (!user.stripeSubscriptionId) throw new CustomError("No active monthly subscription found", 400);
-  await stripe.subscriptions.cancel(user.stripeSubscriptionId);
+  const canceledSubscription = await stripe.subscriptions.cancel(user.stripeSubscriptionId);
   user.stripeSubscriptionId = null;
   user.subscriptionStatus = "canceled";
   await user.save();
-  return { email: user.email, subscriptionStatus: user.subscriptionStatus };
+  return {
+    email: user.email,
+    subscriptionStatus: user.subscriptionStatus,
+    stripeSubscriptionStatus: canceledSubscription.status,
+    canceledAt: canceledSubscription.canceled_at
+      ? new Date(canceledSubscription.canceled_at * 1000)
+      : new Date(),
+    accessUntil: user.accessUntil,
+  };
 }
 
 export async function resendWelcomeEmail(sessionId: string) {
