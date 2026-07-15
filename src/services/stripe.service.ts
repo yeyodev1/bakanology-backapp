@@ -6,6 +6,7 @@ import type { IUser } from "../models/User";
 import { CustomError } from "../errors/customError.error";
 import { hashPassword } from "../helpers/password.helper";
 import { sendPaymentWelcomeEmail, sendPaymentConfirmationEmail } from "../helpers/email.helper";
+import { sendMetaEvent } from "./metaConversions.service";
 
 type CheckoutPlan = "monthly" | "lifetime";
 type CheckoutExtra = "crm" | "telegram_vip";
@@ -384,6 +385,28 @@ async function approveCheckout(payment: IPayment, session: Stripe.Checkout.Sessi
     if (!approved) throw new Error("Checkout fulfillment could not be recorded");
   }
 
+  try {
+    await sendMetaEvent({
+      eventName: "Purchase",
+      eventId: `purchase_${session.id}`,
+      sourceUrl: `${payment.origin || "https://academy.bakano.ec"}/pay-response?session_id=${session.id}`,
+      userData: {
+        email: user.email,
+        firstName: user.name,
+        lastName: user.lastName,
+        externalId: user._id.toString(),
+      },
+      customData: {
+        currency: approved.currency,
+        value: approved.amount,
+        content_ids: [approved.plan, ...approved.extras],
+        content_type: "product",
+      },
+    });
+  } catch (error) {
+    console.error("Failed to send Meta Purchase event:", error);
+  }
+
   if (!approved.emailSentAt) {
     try {
       await sendAccessEmail(approved, user);
@@ -424,6 +447,9 @@ export async function verifySession(sessionId: string) {
     plainPassword,
     email: user?.email,
     stripePaymentStatus: session.payment_status,
+    amount: payment?.amount,
+    currency: payment?.currency,
+    plan: payment?.plan,
   };
 }
 
