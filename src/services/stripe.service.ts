@@ -70,6 +70,7 @@ function resolveReturnOrigin(candidate?: string): string {
       "https://testing-storybrand-frontend.bakano.ec",
       "https://bakanology-funnel.vercel.app",
       "https://bakanology-funnel.netlify.app",
+      "https://academy.bakano.ec",
       "https://bakanology.bakano.ec",
       "https://bakanology.com",
       "https://www.bakanology.com",
