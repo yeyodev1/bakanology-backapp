@@ -26,6 +26,31 @@ export async function createSession(
   }
 }
 
+export async function createFunnelSession(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const { email, name, lastName, origin, plan, extras } = req.body;
+    if (!email || !name || !lastName || !plan) {
+      throw new CustomError("Incomplete data", 400);
+    }
+    const result = await stripeService.createCheckoutSession({
+      email,
+      name,
+      lastName,
+      origin,
+      plan,
+      extras,
+      offer: "funnel",
+    });
+    successResponse(res, result, "Funnel checkout session created successfully");
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function verifyPayment(
   req: Request,
   res: Response,

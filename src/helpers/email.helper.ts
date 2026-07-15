@@ -149,7 +149,7 @@ export async function sendPaymentWelcomeEmail(
   password: string,
   loginUrl: string,
 ): Promise<void> {
-  await getResend().emails.send({
+  const { error } = await getResend().emails.send({
     from: process.env.RESEND_FROM_EMAIL as string,
     to,
     subject: `Bienvenido a ${BRAND}`,
@@ -160,7 +160,8 @@ export async function sendPaymentWelcomeEmail(
         </div>
 
         <h2 style="color: #111;">¡Bienvenido, ${name}!</h2>
-        <p style="font-size: 15px; line-height: 1.6;">Tu pago fue procesado correctamente y ya tienes <strong>acceso de por vida</strong> a todos los cursos, CRM y actualizaciones futuras.</p>
+        <p style="font-size: 15px; line-height: 1.6;">Tu pago fue procesado correctamente y tu cuenta de <strong>Bakanology ya está activa</strong>.</p>
+        <p style="font-size: 15px; line-height: 1.6;">Creamos tu cuenta automáticamente. Usa estas credenciales para ingresar:</p>
 
         <div style="background: #f5f3ef; border-radius: 8px; padding: 16px; margin: 20px 0;">
           <p style="margin: 0 0 8px; font-size: 13px; color: #666;"><strong>Tus credenciales de acceso:</strong></p>
@@ -168,7 +169,7 @@ export async function sendPaymentWelcomeEmail(
           <p style="margin: 4px 0 0; font-size: 14px; color: #333;"><strong>Contraseña:</strong> <code style="background: #fff; padding: 2px 6px; border-radius: 4px; font-size: 13px;">${password}</code></p>
         </div>
 
-        <a href="${loginUrl}" style="display: block; text-align: center; margin: 20px 0; padding: 14px 24px; background: #e6285c; color: #fff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">Iniciar sesión</a>
+        <a href="${loginUrl}" style="display: block; text-align: center; margin: 20px 0; padding: 14px 24px; background: #e6285c; color: #fff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">Ingresar a Bakanology</a>
 
         <p style="font-size: 13px; color: #999; text-align: center;">O copia este enlace en tu navegador:<br><span style="word-break: break-all;">${loginUrl}</span></p>
 
@@ -182,6 +183,7 @@ export async function sendPaymentWelcomeEmail(
       </div>
     `,
   });
+  if (error) throw new Error(`Resend failed: ${error.message}`);
 }
 
 export async function sendPaymentConfirmationEmail(
@@ -189,7 +191,7 @@ export async function sendPaymentConfirmationEmail(
   name: string,
   loginUrl: string,
 ): Promise<void> {
-  await getResend().emails.send({
+  const { error } = await getResend().emails.send({
     from: process.env.RESEND_FROM_EMAIL as string,
     to,
     subject: `Pago confirmado — ${BRAND}`,
@@ -200,9 +202,9 @@ export async function sendPaymentConfirmationEmail(
         </div>
 
         <h2 style="color: #111;">¡Pago confirmado, ${name}!</h2>
-        <p style="font-size: 15px; line-height: 1.6;">Tu pago fue procesado correctamente y tu <strong>acceso de por vida</strong> está activo. Ya puedes acceder a todos los cursos, CRM y actualizaciones futuras.</p>
+        <p style="font-size: 15px; line-height: 1.6;">Tu pago fue procesado correctamente y tu cuenta de <strong>Bakanology está activa</strong>. Puedes ingresar con las credenciales que ya utilizas.</p>
 
-        <a href="${loginUrl}" style="display: block; text-align: center; margin: 20px 0; padding: 14px 24px; background: #e6285c; color: #fff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">Ir a mi dashboard</a>
+        <a href="${loginUrl}" style="display: block; text-align: center; margin: 20px 0; padding: 14px 24px; background: #e6285c; color: #fff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">Ingresar a Bakanology</a>
 
         <p style="font-size: 13px; color: #999; text-align: center;">O copia este enlace en tu navegador:<br><span style="word-break: break-all;">${loginUrl}</span></p>
 
@@ -216,6 +218,7 @@ export async function sendPaymentConfirmationEmail(
       </div>
     `,
   });
+  if (error) throw new Error(`Resend failed: ${error.message}`);
 }
 
 export async function sendManualPaymentReceiptEmail(

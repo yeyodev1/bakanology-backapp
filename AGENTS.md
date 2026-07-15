@@ -2,7 +2,7 @@
 
 ## Stack
 - Express 5 (CommonJS target) + TypeScript + Mongoose
-- MongoDB, JWT (7d), bcryptjs, Cloudinary, Resend, Payphone (Ecuador payment gateway)
+- MongoDB, JWT (7d), bcryptjs, Cloudinary, Resend, Stripe Checkout
 - pnpm with `node-linker=hoisted`
 
 ## Commands
@@ -33,7 +33,7 @@ All scripts call `dbConnect()` and end with `process.exit(0)` manually.
 ## Architecture
 - `src/index.ts` → connects DB, seeds admin, starts HTTP server
 - `api/index.ts` → Vercel serverless handler, lazy DB init singleton
-- Routes at `/api/auth`, `/api/payments`, `/api/presale`, `/api/admin`, `/api/launch-reminders`
+- Routes at `/api/auth`, `/api/payments`, `/api/stripe`, `/api/presale`, `/api/admin`, `/api/launch-reminders`
 - Pattern: `route → middleware → controller → service → model`
 - Controllers: try/catch → `next(error)`, use `successResponse(res, data, message, status?)`
 - Errors: `CustomError(message, status, details?)`
@@ -54,5 +54,12 @@ All scripts call `dbConnect()` and end with `process.exit(0)` manually.
 
 ## .env essentials
 `DB_URI`, `JWT_SECRET`, `FRONTEND_URL`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`,
-`PAYPHONE_TOKEN`, `PAYPHONE_STORE_ID`, `CLOUDINARY_*`, `ANNUAL_PRICE`, `MONTHLY_PRICE`,
-`PRESALE_DEADLINE`, `ADMIN_WHATSAPP`
+`STRIPE_SECRET_KEY`, `STRIPE_TEST_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
+`STRIPE_TEST_WEBHOOK_SECRET`, `CLOUDINARY_*`, `LIFETIME_PRICE`,
+`FUNNEL_MONTHLY_PRICE`, `FUNNEL_LIFETIME_PRICE`, `CRM_PRICE`, `TELEGRAM_VIP_PRICE`
+
+## Stripe contracts
+- Existing academy clients use `POST /api/stripe/create-session` and retain `LIFETIME_PRICE` (currently `$297`).
+- The separate funnel uses `POST /api/stripe/funnel/create-session` with plans `monthly`/`lifetime` and extras `crm`/`telegram_vip`.
+- Never trust a frontend amount; Stripe line items are calculated from backend env prices.
+- `NODE_ENV=development` selects test keys; `NODE_ENV=production` selects live keys automatically.
