@@ -3,11 +3,13 @@ import { User } from "../models/User";
 import { cancelUserSubscription } from "./stripe.service";
 
 export async function getHistory(userId: string) {
-  const payments = await Payment.find({ user: userId })
-    .sort({ createdAt: -1 })
-    .lean();
+  const [payments, user] = await Promise.all([
+    Payment.find({ user: userId }).sort({ createdAt: -1 }).lean(),
+    User.findById(userId).select("stripeSubscriptionId").lean(),
+  ]);
 
   return {
+    hasActiveStripeSubscription: Boolean(user?.stripeSubscriptionId),
     history: payments.map((p) => ({
       id: p._id.toString(),
       type: "stripe" as const,
