@@ -16,6 +16,10 @@ export interface IUser extends Document {
   accessUntil: Date | null;
   foundingMember: boolean;
   stripeCustomerId: string | null;
+  stripeSubscriptionId: string | null;
+  entitlements: Array<"crm" | "telegram_vip">;
+  checkoutLockUntil: Date | null;
+  createdByCheckout: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -47,6 +51,14 @@ const userSchema = new Schema<IUser>(
     accessUntil: { type: Date, default: null },
     foundingMember: { type: Boolean, default: false },
     stripeCustomerId: { type: String, default: null },
+    stripeSubscriptionId: { type: String, default: null },
+    entitlements: {
+      type: [String],
+      enum: ["crm", "telegram_vip"],
+      default: [],
+    },
+    checkoutLockUntil: { type: Date, default: null },
+    createdByCheckout: { type: Boolean, default: false },
   },
   { timestamps: true },
 );

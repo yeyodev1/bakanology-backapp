@@ -26,6 +26,7 @@ function sanitizeUser(user: InstanceType<typeof User>) {
     subscriptionStatus: user.subscriptionStatus,
     accessUntil: user.accessUntil ?? null,
     foundingMember: user.foundingMember ?? false,
+    entitlements: user.entitlements ?? [],
   };
 }
 

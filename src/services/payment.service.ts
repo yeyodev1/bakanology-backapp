@@ -1,6 +1,6 @@
 import { Payment } from "../models/Payment";
 import { User } from "../models/User";
-import { CustomError } from "../errors/customError.error";
+import { cancelUserSubscription } from "./stripe.service";
 
 export async function getHistory(userId: string) {
   const payments = await Payment.find({ user: userId })
@@ -30,13 +30,5 @@ export async function cancelPendingPayments(userId: string) {
 }
 
 export async function cancelSubscription(userId: string) {
-  const user = await User.findById(userId);
-  if (!user) {
-    throw new CustomError("User not found", 404);
-  }
-
-  user.subscriptionStatus = "canceled";
-  await user.save();
-
-  return { email: user.email, subscriptionStatus: user.subscriptionStatus };
+  return cancelUserSubscription(userId);
 }
