@@ -221,6 +221,55 @@ export async function sendPaymentConfirmationEmail(
   if (error) throw new Error(`Resend failed: ${error.message}`);
 }
 
+export async function sendProductWelcomeEmail(
+  to: string,
+  name: string,
+  password: string,
+  accountUrl: string,
+): Promise<void> {
+  const { error } = await getResend().emails.send({
+    from: process.env.RESEND_FROM_EMAIL as string,
+    to,
+    subject: "Tu ebook Setter Automático está listo",
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #333;">
+        <h2 style="color: #111;">¡Gracias por tu compra, ${name}!</h2>
+        <p>Tu ebook <strong>Setter Automático</strong> ya está disponible en tu cuenta de Bakanology.</p>
+        <p>Creamos una cuenta para que puedas consultar tus productos comprados y descargar el PDF:</p>
+        <div style="background: #f5f3ef; border-radius: 8px; padding: 16px; margin: 20px 0;">
+          <p style="margin: 0;"><strong>Correo:</strong> ${to}</p>
+          <p style="margin: 8px 0 0;"><strong>Contraseña temporal:</strong> ${password}</p>
+        </div>
+        <a href="${accountUrl}" style="display: block; text-align: center; margin: 20px 0; padding: 14px 24px; background: #e6285c; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 600;">Ingresar y descargar mi ebook</a>
+        <p style="font-size: 13px; color: #666;">Esta compra no incluye acceso a la academia, membresías, CRM ni Telegram VIP.</p>
+        <p style="font-size: 12px; color: #999;">Revisa Spam o Correo no deseado si no encuentras este mensaje. Te recomendamos cambiar tu contraseña después de ingresar.</p>
+      </div>
+    `,
+  });
+  if (error) throw new Error(`Resend failed: ${error.message}`);
+}
+
+export async function sendProductConfirmationEmail(
+  to: string,
+  name: string,
+  accountUrl: string,
+): Promise<void> {
+  const { error } = await getResend().emails.send({
+    from: process.env.RESEND_FROM_EMAIL as string,
+    to,
+    subject: "Compra confirmada — Setter Automático",
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #333;">
+        <h2 style="color: #111;">¡Compra confirmada, ${name}!</h2>
+        <p>Tu ebook <strong>Setter Automático</strong> ya está disponible en los productos comprados de tu cuenta de Bakanology.</p>
+        <a href="${accountUrl}" style="display: block; text-align: center; margin: 20px 0; padding: 14px 24px; background: #e6285c; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 600;">Ingresar y descargar mi ebook</a>
+        <p style="font-size: 13px; color: #666;">Ingresa con tus credenciales actuales. Esta compra no incluye acceso a la academia, membresías, CRM ni Telegram VIP.</p>
+      </div>
+    `,
+  });
+  if (error) throw new Error(`Resend failed: ${error.message}`);
+}
+
 export async function sendManualPaymentReceiptEmail(
   to: string,
   name: string,

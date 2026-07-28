@@ -4,6 +4,7 @@ import { User } from "../models/User";
 import { Payment } from "../models/Payment";
 import { ManualPayment } from "../models/ManualPayment";
 import { LaunchReminder } from "../models/LaunchReminder";
+import { ProductPurchase } from "../models/ProductPurchase";
 
 async function deleteUser(email: string) {
   await dbConnect();
@@ -16,10 +17,11 @@ async function deleteUser(email: string) {
     process.exit(0);
   }
 
-  const [paymentsResult, manualResult, remindersResult] = await Promise.all([
+  const [paymentsResult, manualResult, remindersResult, productPurchasesResult] = await Promise.all([
     Payment.deleteMany({ user: user._id }),
     ManualPayment.deleteMany({ user: user._id }),
     LaunchReminder.deleteMany({ user: user._id }),
+    ProductPurchase.deleteMany({ user: user._id }),
   ]);
   const userResult = await User.deleteOne({ _id: user._id });
 
@@ -29,6 +31,7 @@ async function deleteUser(email: string) {
   console.log(`  Payments deleted: ${paymentsResult.deletedCount}`);
   console.log(`  Manual payments deleted: ${manualResult.deletedCount}`);
   console.log(`  Launch reminders deleted: ${remindersResult.deletedCount}`);
+  console.log(`  Product purchases deleted: ${productPurchasesResult.deletedCount}`);
 
   process.exit(0);
 }

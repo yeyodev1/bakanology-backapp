@@ -7,6 +7,14 @@ import { CustomError } from "../errors/customError.error";
 import { hashPassword } from "../helpers/password.helper";
 import { sendPaymentWelcomeEmail, sendPaymentConfirmationEmail } from "../helpers/email.helper";
 import { sendMetaEvent } from "./metaConversions.service";
+import { ProductPurchase } from "../models/ProductPurchase";
+import {
+  approveProductCheckout,
+  findPurchaseFromSession,
+  markProductCheckoutFailed,
+  resendProductPurchaseEmail,
+  verifyProductSession,
+} from "./product.service";
 
 type CheckoutPlan = "monthly" | "lifetime";
 type CheckoutExtra = "crm" | "telegram_vip";
@@ -273,8 +281,11 @@ export async function createCheckoutSession(input: {
     let isNew = guest.isNew;
     let plainPassword = guest.plainPassword;
     if (!isNew && lockedUser.createdByCheckout && lockedUser.subscriptionStatus === "none") {
-      const hasPaymentHistory = await Payment.exists({ user: userId });
-      if (!hasPaymentHistory) {
+      const [hasPaymentHistory, hasProductHistory] = await Promise.all([
+        Payment.exists({ user: userId }),
+        ProductPurchase.exists({ user: userId }),
+      ]);
+      if (!hasPaymentHistory && !hasProductHistory) {
         plainPassword = generatePassword();
         lockedUser.password = await hashPassword(plainPassword);
         lockedUser.isVerified = true;
@@ -421,6 +432,9 @@ async function approveCheckout(payment: IPayment, session: Stripe.Checkout.Sessi
 
 export async function verifySession(sessionId: string) {
   const session = await stripe.checkout.sessions.retrieve(sessionId);
+  if (session.metadata?.purchaseKind === "product") {
+    return verifyProductSession(session);
+  }
   let payment = await Payment.findOne({ stripeSessionId: sessionId });
   if (!payment && session.metadata?.clientTransactionId) {
     payment = await Payment.findOne({ clientTransactionId: session.metadata.clientTransactionId });
@@ -519,18 +533,29 @@ export async function handleWebhook(rawBody: Buffer | string | undefined, signat
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
     const paid = session.payment_status === "paid" || session.payment_status === "no_payment_required";
+    const productPurchase = await findPurchaseFromSession(session);
+    if (productPurchase && paid) {
+      await approveProductCheckout(productPurchase, session, true);
+      return { received: true };
+    }
     const payment = session.metadata?.clientTransactionId
       ? await Payment.findOne({ clientTransactionId: session.metadata.clientTransactionId })
       : null;
     if (payment && paid) await approveCheckout(payment, session, true);
   } else if (event.type === "checkout.session.async_payment_succeeded") {
     const session = event.data.object as Stripe.Checkout.Session;
+    const productPurchase = await findPurchaseFromSession(session);
+    if (productPurchase) {
+      await approveProductCheckout(productPurchase, session, true);
+      return { received: true };
+    }
     const payment = session.metadata?.clientTransactionId
       ? await Payment.findOne({ clientTransactionId: session.metadata.clientTransactionId })
       : null;
     if (payment) await approveCheckout(payment, session, true);
   } else if (event.type === "checkout.session.async_payment_failed") {
     const session = event.data.object as Stripe.Checkout.Session;
+    if (await markProductCheckoutFailed(session)) return { received: true };
     if (session.metadata?.clientTransactionId) {
       await Payment.updateOne(
         { clientTransactionId: session.metadata.clientTransactionId, status: "pending" },
@@ -571,6 +596,8 @@ export async function cancelUserSubscription(userId: string) {
 }
 
 export async function resendWelcomeEmail(sessionId: string) {
+  const productPurchase = await ProductPurchase.exists({ stripeSessionId: sessionId });
+  if (productPurchase) return resendProductPurchaseEmail(sessionId);
   const payment = await Payment.findOne({ stripeSessionId: sessionId });
   if (!payment) throw new CustomError("Payment not found", 404);
   if (payment.status !== "approved") throw new CustomError("Payment not approved yet", 400);

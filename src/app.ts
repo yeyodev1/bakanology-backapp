@@ -11,10 +11,12 @@ const whitelist = [
   "http://localhost:5174",
   "http://127.0.0.1:5173",
   "http://127.0.0.1:5174",
-  "http://localhost:8101",
   "https://testing-storybrand-frontend.bakano.ec",
+  "https://testing-storybrand-backapp.bakano.ec",
   "https://bakanology-funnel.vercel.app",
   "https://bakanology-funnel.netlify.app",
+  "https://bakanology-ebook-setterautomatico.vercel.app",
+  "https://bakanology-ebook-setterautomatico.netlify.app",
   "https://academy.bakano.ec",
   "https://bakanology.bakano.ec",
   "https://bakanology.com",
@@ -30,6 +32,8 @@ const corsOptions: cors.CorsOptions = {
     }
   },
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
 
 export function createApp() {
