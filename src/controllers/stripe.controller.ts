@@ -9,7 +9,7 @@ export async function createSession(
   next: NextFunction,
 ) {
   try {
-    const { email, name, lastName, origin } = req.body;
+    const { email, name, lastName, origin, plan, extras } = req.body;
     if (!email || !name || !lastName) {
       throw new CustomError("Incomplete data", 400);
     }
@@ -19,6 +19,8 @@ export async function createSession(
       name,
       lastName,
       origin,
+      plan,
+      extras,
     });
     successResponse(res, result, "Checkout session created successfully");
   } catch (error) {
