@@ -85,7 +85,7 @@ function resolveReturnOrigin(candidate?: string): string {
       "https://bakanology.com",
       "https://www.bakanology.com",
       "https://bakanology-frontapp.vercel.app",
-      "https://bakanology-frontapp-git-develop-diegos-projects-2a9ce414.vercel.app",
+      "https://bakanology-frontapp-git-develop-proyectos-de-diego.vercel.app",
     ]);
     return allowed.has(origin) ? origin : fallback;
   } catch {
