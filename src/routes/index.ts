@@ -6,6 +6,8 @@ import adminRouter from "./admin.routes";
 import launchReminderRouter from "./launchReminder.routes";
 import stripeRouter from "./stripe.routes";
 import metaRouter from "./meta.routes";
+import productRouter from "./product.routes";
+import academyRouter from "./academy.routes";
 
 function routerApi(app: Application) {
   const router = express.Router();
@@ -18,6 +20,8 @@ function routerApi(app: Application) {
   router.use("/launch-reminders", launchReminderRouter);
   router.use("/stripe", stripeRouter);
   router.use("/meta", metaRouter);
+  router.use("/products", productRouter);
+  router.use("/academy", academyRouter);
 }
 
 export default routerApi;

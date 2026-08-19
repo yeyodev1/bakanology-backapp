@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { User } from "../models/User";
 import { ManualPayment } from "../models/ManualPayment";
+import { ProductPurchase } from "../models/ProductPurchase";
 import { CustomError } from "../errors/customError.error";
 import { hashPassword } from "../helpers/password.helper";
 import { generateVerificationToken } from "../helpers/token.helper";
@@ -145,7 +146,10 @@ export async function deleteUser(id: string) {
     throw new CustomError("User not found", 404);
   }
 
-  await ManualPayment.deleteMany({ user: id });
+  await Promise.all([
+    ManualPayment.deleteMany({ user: id }),
+    ProductPurchase.deleteMany({ user: id }),
+  ]);
   await User.findByIdAndDelete(id);
 
   return { deleted: true };

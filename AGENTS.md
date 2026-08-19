@@ -8,7 +8,7 @@
 ## Commands
 | Command | What |
 |---|---|
-| `npm run dev` | Dev server via `ts-node-dev` (port 8100) |
+| `npm run dev` | Dev server via `ts-node-dev` (port 8101) |
 | `npm run build` | `tsc` → `dist/` |
 | `npm run format` | Prettier on `src/` |
 | `npm run compile` | `tsc --watch` |
@@ -33,7 +33,7 @@ All scripts call `dbConnect()` and end with `process.exit(0)` manually.
 ## Architecture
 - `src/index.ts` → connects DB, seeds admin, starts HTTP server
 - `api/index.ts` → Vercel serverless handler, lazy DB init singleton
-- Routes at `/api/auth`, `/api/payments`, `/api/stripe`, `/api/presale`, `/api/admin`, `/api/launch-reminders`
+- Routes at `/api/auth`, `/api/payments`, `/api/stripe`, `/api/products`, `/api/presale`, `/api/admin`, `/api/launch-reminders`
 - Pattern: `route → middleware → controller → service → model`
 - Controllers: try/catch → `next(error)`, use `successResponse(res, data, message, status?)`
 - Errors: `CustomError(message, status, details?)`
@@ -58,8 +58,12 @@ All scripts call `dbConnect()` and end with `process.exit(0)` manually.
 `STRIPE_TEST_WEBHOOK_SECRET`, `CLOUDINARY_*`, `LIFETIME_PRICE`,
 `FUNNEL_MONTHLY_PRICE`, `FUNNEL_LIFETIME_PRICE`, `CRM_PRICE`, `TELEGRAM_VIP_PRICE`
 
+- Setter ebook delivery also requires `SETTER_AUTOMATICO_PRICE`; `SETTER_AUTOMATICO_CLOUDINARY_PUBLIC_ID` may override the default private raw PDF asset.
+
 ## Stripe contracts
 - Existing academy clients use `POST /api/stripe/create-session` and retain `LIFETIME_PRICE` (currently `$297`).
 - The separate funnel uses `POST /api/stripe/funnel/create-session` with plans `monthly`/`lifetime` and extras `crm`/`telegram_vip`.
 - Never trust a frontend amount; Stripe line items are calculated from backend env prices.
 - `NODE_ENV=development` selects test keys; `NODE_ENV=production` selects live keys automatically.
+- Standalone products use `POST /api/stripe/products/create-session`; `setter_automatico` is a one-time $17 purchase stored in `ProductPurchase` and must not mutate academy access.
+- Product buyers use authenticated `GET /api/products/purchased` and `GET /api/products/:slug/read`; the latter validates ownership and proxies the private Cloudinary PDF inline without exposing its signed URL.
