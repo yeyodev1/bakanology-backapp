@@ -16,7 +16,9 @@ import {
   verifyProductSession,
 } from "./product.service";
 
-type CheckoutPlan = "monthly" | "annual" | "lifetime";
+// One-time "lifetime" checkouts are no longer sold; legacy lifetime payments are
+// still fulfilled via IPayment.plan in verifySession/approveCheckout.
+type CheckoutPlan = "monthly" | "annual";
 type CheckoutExtra = "crm" | "telegram_vip";
 type PriceCode = "MONTHLY" | "ANNUAL" | "LIFETIME" | "TELEGRAM_VIP" | "CRM";
 const PUBLIC_ACADEMY_URL = "https://bakanology.com/";
@@ -56,7 +58,7 @@ function getPriceId(code: PriceCode): string | undefined {
 }
 
 function normalizePlan(value: unknown): CheckoutPlan {
-  if (value === "monthly" || value === "annual" || value === "lifetime") return value;
+  if (value === "monthly" || value === "annual") return value;
   throw new CustomError("Invalid checkout plan", 400);
 }
 
@@ -178,18 +180,14 @@ async function cancelPendingCheckouts(userId: string) {
   }
 }
 
-function buildLineItems(plan: CheckoutPlan, extras: CheckoutExtra[], offer: "academy" | "funnel") {
+function buildLineItems(plan: CheckoutPlan, extras: CheckoutExtra[]) {
   const monthlyPrice = readPrice("MONTHLY_PRICE", 47);
   const annualPrice = readPrice("ANNUAL_PRICE", 282);
-  const lifetimePrice = offer === "funnel"
-    ? readPrice("FUNNEL_LIFETIME_PRICE", 297)
-    : readPrice("LIFETIME_PRICE", 297);
   const crmPrice = readPrice("CRM_PRICE", 15);
   const telegramPrice = readPrice("TELEGRAM_VIP_PRICE", 15);
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
   const monthlyPriceId = getPriceId("MONTHLY");
   const annualPriceId = getPriceId("ANNUAL");
-  const lifetimePriceId = getPriceId("LIFETIME");
   const crmPriceId = getPriceId("CRM");
   const telegramPriceId = getPriceId("TELEGRAM_VIP");
 
@@ -226,7 +224,7 @@ function buildLineItems(plan: CheckoutPlan, extras: CheckoutExtra[], offer: "aca
         quantity: 1,
       });
     }
-  } else if (plan === "annual") {
+  } else {
     lineItems.push(annualPriceId ? { price: annualPriceId, quantity: 1 } : {
       price_data: {
         currency: "usd",
@@ -239,26 +237,11 @@ function buildLineItems(plan: CheckoutPlan, extras: CheckoutExtra[], offer: "aca
       },
       quantity: 1,
     });
-  } else {
-    const lifetimePriceData: Stripe.Checkout.SessionCreateParams.LineItem = {
-      price_data: {
-        currency: "usd",
-        unit_amount: lifetimePrice * 100,
-        product_data: {
-          name: offer === "academy" ? "Acceso de por vida — Bakanology Academy" : "Bakanology — Acceso de por vida",
-          description: "Pago único. Incluye CRM Bakanology, Telegram VIP y actualizaciones futuras.",
-        },
-      },
-      quantity: 1,
-    };
-    lineItems.push(offer === "funnel" && lifetimePriceId
-      ? { price: lifetimePriceId, quantity: 1 }
-      : lifetimePriceData);
   }
 
   const amount = plan === "monthly"
     ? monthlyPrice + (extras.includes("crm") ? crmPrice : 0) + (extras.includes("telegram_vip") ? telegramPrice : 0)
-    : plan === "annual" ? annualPrice : lifetimePrice;
+    : annualPrice;
   return { lineItems, amount };
 }
 
@@ -275,8 +258,7 @@ export async function createCheckoutSession(input: {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
     throw new CustomError("Invalid email address", 400);
   }
-  const offer = input.offer || "academy";
-  const plan = input.plan == null && offer === "academy" ? "lifetime" : normalizePlan(input.plan);
+  const plan = normalizePlan(input.plan);
   const extras = normalizeExtras(input.extras, plan);
   const guest = await findOrCreateGuestUser(input);
   const { user, lockAcquired } = guest;
@@ -310,7 +292,7 @@ export async function createCheckoutSession(input: {
       }
     }
 
-    const { lineItems, amount } = buildLineItems(plan, extras, offer);
+    const { lineItems, amount } = buildLineItems(plan, extras);
     const clientTransactionId = `${userId}-${Date.now()}`;
     const origin = resolveReturnOrigin(input.origin);
     const payment = await Payment.create({
@@ -334,16 +316,15 @@ export async function createCheckoutSession(input: {
 
     const metadata = { clientTransactionId, userId, plan, extras: extras.join(",") };
     const params: Stripe.Checkout.SessionCreateParams = {
-      mode: plan === "lifetime" ? "payment" : "subscription",
+      mode: "subscription",
       line_items: lineItems,
       client_reference_id: clientTransactionId,
       customer_email: normalizedEmail,
       metadata,
       success_url: `${origin}/pay-response?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/#oferta`,
+      subscription_data: { metadata },
     };
-    if (plan !== "lifetime") params.subscription_data = { metadata };
-    else params.customer_creation = "always";
 
     const session = await stripe.checkout.sessions.create(params);
     await Payment.updateOne({ clientTransactionId }, { stripeSessionId: session.id });
