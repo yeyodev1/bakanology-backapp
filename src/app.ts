@@ -22,7 +22,7 @@ const whitelist = [
   "https://bakanology.com",
   "https://www.bakanology.com",
   "https://bakanology-frontapp.vercel.app",
-  "https://bakanology-frontapp-git-develop-diegos-projects-2a9ce414.vercel.app",
+  "https://bakanology-frontapp-git-develop-proyectos-de-diego.vercel.app",
 ];
 
 const corsOptions: cors.CorsOptions = {
