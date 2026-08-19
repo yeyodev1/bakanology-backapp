@@ -16,13 +16,14 @@ import {
   verifyProductSession,
 } from "./product.service";
 
-type CheckoutPlan = "monthly" | "lifetime";
+type CheckoutPlan = "monthly" | "annual" | "lifetime";
 type CheckoutExtra = "crm" | "telegram_vip";
-type PriceCode = "MONTHLY" | "LIFETIME" | "TELEGRAM_VIP" | "CRM";
+type PriceCode = "MONTHLY" | "ANNUAL" | "LIFETIME" | "TELEGRAM_VIP" | "CRM";
 const PUBLIC_ACADEMY_URL = "https://bakanology.com/";
 
-const LIVE_PRICE_IDS: Record<PriceCode, string> = {
-  MONTHLY: "price_1TtWoZ606jnHEf4npZbARL2N",
+// MONTHLY/ANNUAL intentionally absent: the legacy live monthly price is $37 and
+// checkout must charge the current price_data amounts unless an env price id is set.
+const LIVE_PRICE_IDS: Partial<Record<PriceCode, string>> = {
   LIFETIME: "price_1Tp9xH606jnHEf4n1IYf6OO2",
   TELEGRAM_VIP: "price_1TtWuV606jnHEf4nJnC1VAUC",
   CRM: "price_1TtWvh606jnHEf4nohCH3MC7",
@@ -55,12 +56,12 @@ function getPriceId(code: PriceCode): string | undefined {
 }
 
 function normalizePlan(value: unknown): CheckoutPlan {
-  if (value === "monthly" || value === "lifetime") return value;
+  if (value === "monthly" || value === "annual" || value === "lifetime") return value;
   throw new CustomError("Invalid checkout plan", 400);
 }
 
 function normalizeExtras(value: unknown, plan: CheckoutPlan): CheckoutExtra[] {
-  if (plan === "lifetime" || !Array.isArray(value)) return [];
+  if (plan !== "monthly" || !Array.isArray(value)) return [];
   const allowed = new Set<CheckoutExtra>(["crm", "telegram_vip"]);
   return [...new Set(value.filter((item): item is CheckoutExtra => allowed.has(item)))];
 }
@@ -176,7 +177,8 @@ async function cancelPendingCheckouts(userId: string) {
 }
 
 function buildLineItems(plan: CheckoutPlan, extras: CheckoutExtra[], offer: "academy" | "funnel") {
-  const monthlyPrice = readPrice("FUNNEL_MONTHLY_PRICE", 37);
+  const monthlyPrice = readPrice("MONTHLY_PRICE", 47);
+  const annualPrice = readPrice("ANNUAL_PRICE", 282);
   const lifetimePrice = offer === "funnel"
     ? readPrice("FUNNEL_LIFETIME_PRICE", 297)
     : readPrice("LIFETIME_PRICE", 297);
@@ -184,6 +186,7 @@ function buildLineItems(plan: CheckoutPlan, extras: CheckoutExtra[], offer: "aca
   const telegramPrice = readPrice("TELEGRAM_VIP_PRICE", 15);
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
   const monthlyPriceId = getPriceId("MONTHLY");
+  const annualPriceId = getPriceId("ANNUAL");
   const lifetimePriceId = getPriceId("LIFETIME");
   const crmPriceId = getPriceId("CRM");
   const telegramPriceId = getPriceId("TELEGRAM_VIP");
@@ -221,6 +224,19 @@ function buildLineItems(plan: CheckoutPlan, extras: CheckoutExtra[], offer: "aca
         quantity: 1,
       });
     }
+  } else if (plan === "annual") {
+    lineItems.push(annualPriceId ? { price: annualPriceId, quantity: 1 } : {
+      price_data: {
+        currency: "usd",
+        unit_amount: annualPrice * 100,
+        recurring: { interval: "year" },
+        product_data: {
+          name: "Bakanology — Membresía anual",
+          description: "12 meses de acceso al precio de 6. Incluye CRM Bakanology y Telegram VIP.",
+        },
+      },
+      quantity: 1,
+    });
   } else {
     const lifetimePriceData: Stripe.Checkout.SessionCreateParams.LineItem = {
       price_data: {
@@ -238,12 +254,10 @@ function buildLineItems(plan: CheckoutPlan, extras: CheckoutExtra[], offer: "aca
       : lifetimePriceData);
   }
 
-  return {
-    lineItems,
-    amount: plan === "monthly"
-      ? monthlyPrice + (extras.includes("crm") ? crmPrice : 0) + (extras.includes("telegram_vip") ? telegramPrice : 0)
-      : lifetimePrice,
-  };
+  const amount = plan === "monthly"
+    ? monthlyPrice + (extras.includes("crm") ? crmPrice : 0) + (extras.includes("telegram_vip") ? telegramPrice : 0)
+    : plan === "annual" ? annualPrice : lifetimePrice;
+  return { lineItems, amount };
 }
 
 export async function createCheckoutSession(input: {
@@ -260,7 +274,7 @@ export async function createCheckoutSession(input: {
     throw new CustomError("Invalid email address", 400);
   }
   const offer = input.offer || "academy";
-  const plan = offer === "academy" ? "lifetime" : normalizePlan(input.plan);
+  const plan = input.plan == null && offer === "academy" ? "lifetime" : normalizePlan(input.plan);
   const extras = normalizeExtras(input.extras, plan);
   const guest = await findOrCreateGuestUser(input);
   const { user, lockAcquired } = guest;
@@ -269,7 +283,7 @@ export async function createCheckoutSession(input: {
   try {
     if (lockedUser.stripeSubscriptionId) {
       throw new CustomError(
-        "Ya tienes una suscripción mensual activa. Puedes administrarla o cancelarla en https://bakanology.com/app/pagos",
+        "Ya tienes una suscripción activa. Puedes administrarla o cancelarla en https://bakanology.com/app/pagos",
         409,
       );
     }
@@ -318,7 +332,7 @@ export async function createCheckoutSession(input: {
 
     const metadata = { clientTransactionId, userId, plan, extras: extras.join(",") };
     const params: Stripe.Checkout.SessionCreateParams = {
-      mode: plan === "monthly" ? "subscription" : "payment",
+      mode: plan === "lifetime" ? "payment" : "subscription",
       line_items: lineItems,
       client_reference_id: clientTransactionId,
       customer_email: normalizedEmail,
@@ -326,7 +340,7 @@ export async function createCheckoutSession(input: {
       success_url: `${origin}/pay-response?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/#oferta`,
     };
-    if (plan === "monthly") params.subscription_data = { metadata };
+    if (plan !== "lifetime") params.subscription_data = { metadata };
     else params.customer_creation = "always";
 
     const session = await stripe.checkout.sessions.create(params);
@@ -359,8 +373,8 @@ async function approveCheckout(payment: IPayment, session: Stripe.Checkout.Sessi
   const paymentIntentId = stripeId(session.payment_intent);
   const user = await User.findById(payment.user);
   if (!user) throw new Error("Checkout user is missing");
-  if (payment.plan === "monthly") {
-    if (!subscriptionId) throw new Error("Monthly checkout has no Stripe subscription");
+  if (payment.plan !== "lifetime") {
+    if (!subscriptionId) throw new Error("Subscription checkout has no Stripe subscription");
     if (user.foundingMember || (user.stripeSubscriptionId && user.stripeSubscriptionId !== subscriptionId)) {
       await stripe.subscriptions.cancel(subscriptionId);
       await Payment.updateOne({ _id: payment._id }, { status: "canceled", stripeSubscriptionId: subscriptionId });
@@ -378,15 +392,18 @@ async function approveCheckout(payment: IPayment, session: Stripe.Checkout.Sessi
   if (!approved) throw new Error("Checkout fulfillment record is missing");
 
   if (!approved.fulfilledAt) {
-    if (approved.plan !== "monthly") {
+    if (approved.plan === "lifetime") {
       user.accessUntil = new Date("2100-01-01T00:00:00Z");
       user.foundingMember = true;
       user.entitlements = ["crm", "telegram_vip"];
     } else {
-      if (!subscriptionId) throw new Error("Monthly checkout has no Stripe subscription");
+      if (!subscriptionId) throw new Error("Subscription checkout has no Stripe subscription");
       user.accessUntil = await getSubscriptionAccessUntil(subscriptionId);
       user.stripeSubscriptionId = subscriptionId;
-      user.entitlements = [...new Set([...(user.entitlements || []), ...approved.extras])];
+      const grantedExtras: CheckoutExtra[] = approved.plan === "annual"
+        ? ["crm", "telegram_vip"]
+        : approved.extras;
+      user.entitlements = [...new Set([...(user.entitlements || []), ...grantedExtras])];
     }
     user.subscriptionStatus = "active";
     const customerId = stripeId(session.customer);
@@ -480,7 +497,7 @@ async function handleRenewalInvoice(invoice: Stripe.Invoice) {
     try {
       renewal = await Payment.create({
         user: original.user,
-        plan: "monthly",
+        plan: original.plan,
         extras: [],
         amount: invoice.amount_paid / 100,
         currency: "USD",
@@ -579,7 +596,7 @@ export async function handleWebhook(rawBody: Buffer | string | undefined, signat
 export async function cancelUserSubscription(userId: string) {
   const user = await User.findById(userId);
   if (!user) throw new CustomError("User not found", 404);
-  if (!user.stripeSubscriptionId) throw new CustomError("No active monthly subscription found", 400);
+  if (!user.stripeSubscriptionId) throw new CustomError("No active subscription found", 400);
   const canceledSubscription = await stripe.subscriptions.cancel(user.stripeSubscriptionId);
   user.stripeSubscriptionId = null;
   user.subscriptionStatus = "canceled";
