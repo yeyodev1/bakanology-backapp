@@ -11,7 +11,9 @@
     "delete:dreyes": "ts-node src/scripts/delete-user.ts dreyes@bakano.ec",
     "fix:access": "ts-node src/scripts/fix-access.ts",
     "start": "node dist/index.js",
-    "format": "prettier --write 'src/**/*.{js,jsx,ts,tsx,json,css,scss,md}'"
+    "format": "prettier --write 'src/**/*.{js,jsx,ts,tsx,json,css,scss,md}'",
+    "upload:lesson": "ts-node-dev --transpile-only src/scripts/upload-lesson.ts",
+    "grant:clients": "ts-node-dev --transpile-only src/scripts/grant-client-access.ts"
   },
   "dependencies": {
     "axios": "^1.7.9",
