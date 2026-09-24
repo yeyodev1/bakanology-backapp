@@ -14,7 +14,7 @@ import { Lesson } from "../models/Lesson";
 const BUNNY_API_KEY = process.env.BUNNY_STREAM_API_KEY;
 const BUNNY_LIBRARY_ID = process.env.BUNNY_STREAM_LIBRARY_ID;
 
-function slugify(value: string): string {
+export function slugify(value: string): string {
   return value
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -42,7 +42,7 @@ async function bunny<T>(endpoint: string, init: RequestInit = {}): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-async function uploadVideo(filePath: string, title: string) {
+export async function uploadVideo(filePath: string, title: string) {
   const size = fs.statSync(filePath).size;
   const { guid } = await bunny<{ guid: string }>("/videos", {
     method: "POST",
@@ -159,7 +159,9 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((error) => {
-  console.error("❌", error);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error("❌", error);
+    process.exit(1);
+  });
+}
