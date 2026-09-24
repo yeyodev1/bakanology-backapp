@@ -30,6 +30,7 @@ All scripts call `dbConnect()` and end with `process.exit(0)` manually.
 - `fix-access.ts` — recalculates `user.accessUntil` from latest approved Payment or ManualPayment
 - `find-users.ts` — regex search across name/lastName/email
 - `upload-lesson.ts` — uploads one mp4 to Bunny Stream and publishes it as a lesson (creates the course if missing): `pnpm upload:lesson <file> <course-slug> "<Course>" "<Lesson>" [order]`
+- `upload-courses.ts` — idempotent load of the three Bakano courses (Estrategia Comercial, ADN de la Venta, Marketing y Ventas) from `~/Downloads` to Bunny: `pnpm upload:courses [base-dir]`
 - `grant-client-access.ts` — gives Bakano clients academy access from a CSV (`email,name,lastName`) and emails them in throttled batches; dry run unless `--send`, resumable via `<csv>.sent.json`: `pnpm grant:clients <csv> --months=12 --batch=10 --delay=120 --send`
 
 ## Architecture
