@@ -66,6 +66,9 @@ export async function sendAdminInviteEmail(
           <li><strong>Correo:</strong> ${to}</li>
           <li><strong>Contraseña:</strong> ${password}</li>
         </ul>
+        <div style="background: #fff3cd; border: 1px solid #ffeeba; border-radius: 6px; padding: 12px; margin: 20px 0; font-size: 13px; color: #856404;">
+          <strong>Importante:</strong> esta contraseña es solo para Bakanology. <strong>No es la misma de metrics.bakano.ec</strong>; tus accesos a Metrics no cambian.
+        </div>
         <p>Para activar tu cuenta, verifica tu correo haciendo clic en el siguiente botón:</p>
         <a href="${verificationLink}" style="display: inline-block; margin: 16px 0; padding: 14px 24px; background: #e6285c; color: #fff; text-decoration: none; border-radius: 6px;">Verificar mi cuenta</a>
         <p style="font-size: 14px; color: #666;">O copia y pega este enlace:</p>
@@ -316,9 +319,12 @@ export async function sendBakanoClientAccessEmail(
           <p style="margin: 0 0 8px; font-size: 13px; color: #666;"><strong>Tus credenciales de acceso:</strong></p>
           <p style="margin: 0; font-size: 14px; color: #333;"><strong>Correo:</strong> ${to}</p>
           <p style="margin: 4px 0 0; font-size: 14px; color: #333;"><strong>Contraseña:</strong> <code style="background: #fff; padding: 2px 6px; border-radius: 4px; font-size: 13px;">${password}</code></p>
+        </div>
+        <div style="background: #fff3cd; border: 1px solid #ffeeba; border-radius: 6px; padding: 12px; margin: 20px 0; font-size: 13px; color: #856404;">
+          <strong>Importante:</strong> esta contraseña es solo para Bakanology. <strong>No es la misma de metrics.bakano.ec</strong>; tus accesos a Metrics no cambian.
         </div>`
     : `
-        <p style="font-size: 15px; line-height: 1.6;">Ya tenías una cuenta con este correo, así que puedes entrar con tu contraseña de siempre. Si no la recuerdas, <a href="${resetUrl}" style="color: #e6285c;">créala de nuevo aquí</a>.</p>`;
+        <p style="font-size: 15px; line-height: 1.6;">Ya tenías una cuenta de Bakanology con este correo, así que entras con esa contraseña (no es la de metrics.bakano.ec). Si no la recuerdas, <a href="${resetUrl}" style="color: #e6285c;">créala de nuevo aquí</a>.</p>`;
 
   const { error } = await getResend().emails.send({
     from: process.env.RESEND_FROM_EMAIL as string,
