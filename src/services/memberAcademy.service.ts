@@ -325,11 +325,53 @@ export async function getAchievement(id: string, userId: string) {
   };
 }
 
-export async function listComments(
-  lessonId: string,
-  userId: string,
-  query: Query,
-) {
+const COMMENT_AUTHOR_FIELDS = "name lastName profilePicture role";
+const COMMENTS_PER_MINUTE = 10;
+
+type CommentAuthor = {
+  _id: Types.ObjectId;
+  name?: string;
+  lastName?: string;
+  profilePicture?: string | null;
+  role?: string;
+};
+
+type CommentDoc = {
+  _id: Types.ObjectId;
+  lesson: Types.ObjectId;
+  parent?: Types.ObjectId | null;
+  user: CommentAuthor | Types.ObjectId | null;
+  body: string;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+function serializeComment(comment: CommentDoc, userId: string) {
+  const author =
+    comment.user && "name" in comment.user ? comment.user : null;
+  const authorId = author?._id?.toString() ?? String(comment.user ?? "");
+  return {
+    id: comment._id.toString(),
+    lesson: comment.lesson.toString(),
+    parent: comment.parent ? comment.parent.toString() : null,
+    body: comment.body,
+    status: comment.status,
+    createdAt: comment.createdAt,
+    updatedAt: comment.updatedAt,
+    edited: comment.updatedAt.getTime() - comment.createdAt.getTime() > 1000,
+    isOwn: authorId === userId,
+    author: {
+      id: authorId,
+      name: author?.name ?? "Alumno",
+      lastName: author?.lastName ?? "",
+      profilePicture: author?.profilePicture ?? null,
+      isTeam: author?.role === "admin",
+    },
+  };
+}
+
+async function requirePublishedLesson(lessonId: string) {
   requireObjectId(lessonId, "lessonId");
   const lesson = await Lesson.findOne({ _id: lessonId, status: "published" })
     .select("course")
@@ -338,23 +380,56 @@ export async function listComments(
     !lesson ||
     !(await Course.exists({ _id: lesson.course, status: "published" }))
   )
-    throw new CustomError("Lesson not found", 404);
+    throw new CustomError("Clase no encontrada", 404);
+  return lesson;
+}
+
+function requireCommentBody(body: unknown) {
+  const text = requireString(body, "body");
+  if (text.length > 2000)
+    throw new CustomError("El comentario no puede superar 2000 caracteres", 400);
+  return text;
+}
+
+export async function listComments(
+  lessonId: string,
+  userId: string,
+  query: Query,
+) {
+  await requirePublishedLesson(lessonId);
   const { page, limit, skip } = pagination(query);
-  const filter = {
-    lesson: lessonId,
-    $or: [{ status: "published" }, { user: userId }],
-  };
-  const [comments, total] = await Promise.all([
-    LessonComment.find(filter)
-      .populate("user", "name lastName profilePicture")
+  const visible = { $or: [{ status: "published" }, { user: userId }] };
+  const rootFilter = { lesson: lessonId, parent: null, ...visible };
+
+  const [roots, total, totalVisible] = await Promise.all([
+    LessonComment.find(rootFilter)
+      .populate("user", COMMENT_AUTHOR_FIELDS)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .lean(),
-    LessonComment.countDocuments(filter),
+      .lean<CommentDoc[]>(),
+    LessonComment.countDocuments(rootFilter),
+    LessonComment.countDocuments({ lesson: lessonId, ...visible }),
   ]);
+
+  const replies = await LessonComment.find({
+    parent: { $in: roots.map((comment) => comment._id) },
+    ...visible,
+  })
+    .populate("user", COMMENT_AUTHOR_FIELDS)
+    .sort({ createdAt: 1 })
+    .lean<CommentDoc[]>();
+
+  const comments = roots.map((comment) => ({
+    ...serializeComment(comment, userId),
+    replies: replies
+      .filter((reply) => reply.parent?.toString() === comment._id.toString())
+      .map((reply) => serializeComment(reply, userId)),
+  }));
+
   return {
     comments,
+    total: totalVisible,
     pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
   };
 }
@@ -363,43 +438,74 @@ export async function createComment(
   lessonId: string,
   userId: string,
   body: unknown,
+  parentId?: unknown,
 ) {
-  requireObjectId(lessonId, "lessonId");
-  const lesson = await Lesson.findOne({ _id: lessonId, status: "published" })
-    .select("course")
-    .lean();
-  if (
-    !lesson ||
-    !(await Course.exists({ _id: lesson.course, status: "published" }))
-  )
-    throw new CustomError("Lesson not found", 404);
-  return LessonComment.create({
+  await requirePublishedLesson(lessonId);
+  const text = requireCommentBody(body);
+
+  let parent: Types.ObjectId | null = null;
+  if (parentId) {
+    const parentComment = await LessonComment.findById(
+      requireObjectId(parentId, "parent"),
+    )
+      .select("lesson parent status")
+      .lean();
+    if (
+      !parentComment ||
+      parentComment.lesson.toString() !== lessonId ||
+      parentComment.parent ||
+      parentComment.status !== "published"
+    )
+      throw new CustomError("No se puede responder a este comentario", 400);
+    parent = parentComment._id;
+  }
+
+  const recent = await LessonComment.countDocuments({
+    user: userId,
+    createdAt: { $gte: new Date(Date.now() - 60 * 1000) },
+  });
+  if (recent >= COMMENTS_PER_MINUTE)
+    throw new CustomError(
+      "Estás comentando muy rápido. Espera un minuto e inténtalo de nuevo",
+      429,
+    );
+
+  const comment = await LessonComment.create({
     lesson: lessonId,
     user: userId,
-    body: requireString(body, "body"),
+    parent,
+    body: text,
+    status: "published",
   });
+  const populated = await LessonComment.findById(comment._id)
+    .populate("user", COMMENT_AUTHOR_FIELDS)
+    .lean<CommentDoc>();
+  return { ...serializeComment(populated!, userId), replies: [] };
 }
 
 export async function updateComment(id: string, userId: string, body: unknown) {
   requireObjectId(id);
   const comment = await LessonComment.findOneAndUpdate(
     { _id: id, user: userId },
-    {
-      body: requireString(body, "body"),
-      status: "pending",
-      moderatedBy: null,
-      moderatedAt: null,
-    },
+    { body: requireCommentBody(body) },
     { new: true, runValidators: true },
-  );
-  if (!comment) throw new CustomError("Comment not found", 404);
-  return comment;
+  )
+    .populate("user", COMMENT_AUTHOR_FIELDS)
+    .lean<CommentDoc>();
+  if (!comment) throw new CustomError("Comentario no encontrado", 404);
+  return serializeComment(comment, userId);
 }
 
-export async function deleteComment(id: string, userId: string) {
+export async function deleteComment(
+  id: string,
+  userId: string,
+  isAdmin = false,
+) {
   requireObjectId(id);
-  if (!(await LessonComment.findOneAndDelete({ _id: id, user: userId })))
-    throw new CustomError("Comment not found", 404);
+  const filter = isAdmin ? { _id: id } : { _id: id, user: userId };
+  const comment = await LessonComment.findOneAndDelete(filter);
+  if (!comment) throw new CustomError("Comentario no encontrado", 404);
+  await LessonComment.deleteMany({ parent: comment._id });
   return { deleted: true };
 }
 
