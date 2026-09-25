@@ -3,8 +3,12 @@ import { adminMiddleware } from "../middlewares/admin.middleware";
 import { upload } from "../middlewares/upload.middleware";
 import * as adminController from "../controllers/admin.controller";
 import * as manualPaymentController from "../controllers/manualPayment.controller";
+import { otorgarAccesoCliente } from "../controllers/accesoBakano.controller";
 
 const router = Router();
+
+// Servidor a servidor desde Metrics: valida su propia clave, no JWT.
+router.post("/acceso-cliente", otorgarAccesoCliente);
 
 router.get("/users", adminMiddleware, adminController.listUsers);
 router.post("/users", adminMiddleware, adminController.createUser);
