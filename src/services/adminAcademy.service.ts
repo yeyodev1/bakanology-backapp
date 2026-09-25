@@ -571,8 +571,12 @@ export async function listComments(query: Body) {
     filter.lesson = requireObjectId(query.lessonId, "lessonId");
   const [comments, total] = await Promise.all([
     LessonComment.find(filter)
-      .populate("user", "name lastName profilePicture")
-      .populate("lesson", "title course")
+      .populate("user", "name lastName profilePicture role")
+      .populate({
+        path: "lesson",
+        select: "title course",
+        populate: { path: "course", select: "title" },
+      })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -604,8 +608,9 @@ export async function moderateComment(
 
 export async function deleteComment(id: string) {
   requireObjectId(id);
-  if (!(await LessonComment.findByIdAndDelete(id)))
-    throw new CustomError("Comment not found", 404);
+  const comment = await LessonComment.findByIdAndDelete(id);
+  if (!comment) throw new CustomError("Comentario no encontrado", 404);
+  await LessonComment.deleteMany({ parent: comment._id });
   return { deleted: true };
 }
 
