@@ -338,6 +338,13 @@ export async function sendBakanoClientAccessEmail(
 
         <h2 style="color: #111;">Hola, ${name}</h2>
         <p style="font-size: 15px; line-height: 1.6;">Por ser cliente de <strong>Bakano</strong>, activamos tu acceso a <strong>${BRAND}</strong>: los cursos, clases y recursos que usamos para hacer crecer negocios como el tuyo.</p>
+
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+          <p style="margin: 0; font-size: 15px; color: #166534; line-height: 1.6;">
+            <strong>No pagas nada aparte.</strong> Mientras tengas tu suscripción con Bakano,
+            ${BRAND} va incluido: sin costo adicional y sin fecha de corte mientras sigas con nosotros.
+          </p>
+        </div>
         ${credentials}
 
         <a href="${loginUrl}" style="display: block; text-align: center; margin: 20px 0; padding: 14px 24px; background: #e6285c; color: #fff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">Entrar a Bakanology</a>
