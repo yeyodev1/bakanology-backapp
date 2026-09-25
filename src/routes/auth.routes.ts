@@ -11,6 +11,11 @@ router.post("/login", authController.login);
 router.get("/me", authMiddleware, authController.getMe);
 router.put("/profile", authMiddleware, authController.updateProfile);
 router.put(
+  "/preferences",
+  authMiddleware,
+  authController.updateThemePreference,
+);
+router.put(
   "/profile-picture",
   authMiddleware,
   upload.single("image"),
