@@ -1,4 +1,4 @@
-import { User } from "../models/User";
+import { User, themePreferences, ThemePreference } from "../models/User";
 import { CustomError } from "../errors/customError.error";
 import { hashPassword, comparePassword } from "../helpers/password.helper";
 import {
@@ -27,6 +27,7 @@ function sanitizeUser(user: InstanceType<typeof User>) {
     accessUntil: user.accessUntil ?? null,
     foundingMember: user.foundingMember ?? false,
     entitlements: user.entitlements ?? [],
+    themePreference: user.themePreference ?? "system",
   };
 }
 
@@ -143,6 +144,21 @@ export async function updateProfile(
   }
 
   await user.save();
+  return sanitizeUser(user);
+}
+
+export async function updateThemePreference(userId: string, value: unknown) {
+  if (!themePreferences.includes(value as ThemePreference)) {
+    throw new CustomError("El tema debe ser light, dark o system", 400);
+  }
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { themePreference: value },
+    { new: true },
+  );
+  if (!user) {
+    throw new CustomError("User not found", 404);
+  }
   return sanitizeUser(user);
 }
 
