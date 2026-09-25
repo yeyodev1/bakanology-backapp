@@ -67,9 +67,14 @@ export const listComments = run(
     service.listComments(String(req.params.lessonId), userId, req.query),
 );
 export const createComment = run(
-  "Comment submitted for moderation",
+  "Comment created successfully",
   (req, userId) =>
-    service.createComment(String(req.params.lessonId), userId, req.body.body),
+    service.createComment(
+      String(req.params.lessonId),
+      userId,
+      req.body.body,
+      req.body.parent,
+    ),
   201,
 );
 export const updateComment = run(
@@ -79,7 +84,12 @@ export const updateComment = run(
 );
 export const deleteComment = run(
   "Comment deleted successfully",
-  (req, userId) => service.deleteComment(String(req.params.id), userId),
+  (req, userId) =>
+    service.deleteComment(
+      String(req.params.id),
+      userId,
+      req.user?.accountType === "admin",
+    ),
 );
 
 // ── Recorded Classes ──────────────────────────────────────────────────────────
