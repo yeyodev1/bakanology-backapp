@@ -1,5 +1,8 @@
 import { Schema, model, Document } from "mongoose";
 
+export const themePreferences = ["light", "dark", "system"] as const;
+export type ThemePreference = (typeof themePreferences)[number];
+
 export interface IUser extends Document {
   name: string;
   lastName: string;
@@ -20,6 +23,7 @@ export interface IUser extends Document {
   entitlements: Array<"crm" | "telegram_vip">;
   checkoutLockUntil: Date | null;
   createdByCheckout: boolean;
+  themePreference: ThemePreference;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,6 +63,11 @@ const userSchema = new Schema<IUser>(
     },
     checkoutLockUntil: { type: Date, default: null },
     createdByCheckout: { type: Boolean, default: false },
+    themePreference: {
+      type: String,
+      enum: themePreferences,
+      default: "system",
+    },
   },
   { timestamps: true },
 );
