@@ -4,6 +4,7 @@ import { upload } from "../middlewares/upload.middleware";
 import * as adminController from "../controllers/admin.controller";
 import * as manualPaymentController from "../controllers/manualPayment.controller";
 import { otorgarAccesoCliente } from "../controllers/accesoBakano.controller";
+import * as academyController from "../controllers/adminAcademy.controller";
 
 const router = Router();
 
@@ -28,5 +29,13 @@ router.delete(
   adminMiddleware,
   manualPaymentController.remove,
 );
+
+router.get("/comments", adminMiddleware, academyController.listComments);
+router.put(
+  "/comments/:id/status",
+  adminMiddleware,
+  academyController.moderateComment,
+);
+router.delete("/comments/:id", adminMiddleware, academyController.deleteComment);
 
 export default router;
