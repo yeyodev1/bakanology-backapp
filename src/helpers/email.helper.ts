@@ -66,6 +66,9 @@ export async function sendAdminInviteEmail(
           <li><strong>Correo:</strong> ${to}</li>
           <li><strong>Contraseña:</strong> ${password}</li>
         </ul>
+        <div style="background: #fff3cd; border: 1px solid #ffeeba; border-radius: 6px; padding: 12px; margin: 20px 0; font-size: 13px; color: #856404;">
+          <strong>Importante:</strong> esta contraseña es solo para Bakanology. <strong>No es la misma de metrics.bakano.ec</strong>; tus accesos a Metrics no cambian.
+        </div>
         <p>Para activar tu cuenta, verifica tu correo haciendo clic en el siguiente botón:</p>
         <a href="${verificationLink}" style="display: inline-block; margin: 16px 0; padding: 14px 24px; background: #e6285c; color: #fff; text-decoration: none; border-radius: 6px;">Verificar mi cuenta</a>
         <p style="font-size: 14px; color: #666;">O copia y pega este enlace:</p>
@@ -96,7 +99,7 @@ export async function sendAccessExtendedEmail(
         <h2 style="color: #111;">Hola, ${name}</h2>
         <p>Tu acceso a <strong>${BRAND}</strong> ha sido extendido exitosamente.</p>
         <p style="font-size: 16px; margin: 16px 0;">Ahora tienes acceso activo hasta el <strong>${dateLabel}</strong>.</p>
-        <p style="font-size: 12px; color: #999; margin-top: 24px;">Si tienes preguntas, escríbenos por WhatsApp.</p>
+        <p style="font-size: 12px; color: #999; margin-top: 24px;">Si tienes preguntas, escríbenos a bakanology@bakanology.com.</p>
       </div>
     `,
   });
@@ -301,4 +304,56 @@ export async function sendManualPaymentReceiptEmail(
       </div>
     `,
   });
+}
+
+export async function sendBakanoClientAccessEmail(
+  to: string,
+  name: string,
+  password: string | null,
+  loginUrl: string,
+  resetUrl: string,
+): Promise<void> {
+  const credentials = password
+    ? `
+        <div style="background: #f5f3ef; border-radius: 8px; padding: 16px; margin: 20px 0;">
+          <p style="margin: 0 0 8px; font-size: 13px; color: #666;"><strong>Tus credenciales de acceso:</strong></p>
+          <p style="margin: 0; font-size: 14px; color: #333;"><strong>Correo:</strong> ${to}</p>
+          <p style="margin: 4px 0 0; font-size: 14px; color: #333;"><strong>Contraseña:</strong> <code style="background: #fff; padding: 2px 6px; border-radius: 4px; font-size: 13px;">${password}</code></p>
+        </div>
+        <div style="background: #fff3cd; border: 1px solid #ffeeba; border-radius: 6px; padding: 12px; margin: 20px 0; font-size: 13px; color: #856404;">
+          <strong>Importante:</strong> esta contraseña es solo para Bakanology. <strong>No es la misma de metrics.bakano.ec</strong>; tus accesos a Metrics no cambian.
+        </div>`
+    : `
+        <p style="font-size: 15px; line-height: 1.6;">Ya tenías una cuenta de Bakanology con este correo, así que entras con esa contraseña (no es la de metrics.bakano.ec). Si no la recuerdas, <a href="${resetUrl}" style="color: #e6285c;">créala de nuevo aquí</a>.</p>`;
+
+  const { error } = await getResend().emails.send({
+    from: process.env.RESEND_FROM_EMAIL as string,
+    to,
+    subject: `Bakano te da acceso a ${BRAND}`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #333;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h1 style="color: #191423; font-size: 24px; margin: 0;">${BRAND}</h1>
+        </div>
+
+        <h2 style="color: #111;">Hola, ${name}</h2>
+        <p style="font-size: 15px; line-height: 1.6;">Por ser cliente de <strong>Bakano</strong>, activamos tu acceso a <strong>${BRAND}</strong>: los cursos, clases y recursos que usamos para hacer crecer negocios como el tuyo.</p>
+
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+          <p style="margin: 0; font-size: 15px; color: #166534; line-height: 1.6;">
+            <strong>No pagas nada aparte.</strong> Mientras tengas tu suscripción con Bakano,
+            ${BRAND} va incluido: sin costo adicional y sin fecha de corte mientras sigas con nosotros.
+          </p>
+        </div>
+        ${credentials}
+
+        <a href="${loginUrl}" style="display: block; text-align: center; margin: 20px 0; padding: 14px 24px; background: #e6285c; color: #fff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">Entrar a Bakanology</a>
+
+        <p style="font-size: 13px; color: #999; text-align: center;">O copia este enlace en tu navegador:<br><span style="word-break: break-all;">${loginUrl}</span></p>
+
+        <p style="font-size: 12px; color: #999; margin-top: 16px;">${password ? "Te recomendamos cambiar tu contraseña después de iniciar sesión. " : ""}¿Dudas? Escríbenos a bakanology@bakanology.com.</p>
+      </div>
+    `,
+  });
+  if (error) throw new Error(`Resend failed: ${error.message}`);
 }

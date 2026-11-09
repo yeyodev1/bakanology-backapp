@@ -3,6 +3,7 @@ import { Schema, model, Document, Types } from "mongoose";
 export interface ILessonComment extends Document {
   lesson: Types.ObjectId;
   user: Types.ObjectId;
+  parent: Types.ObjectId | null;
   body: string;
   status: "pending" | "published" | "rejected";
   moderatedBy: Types.ObjectId | null;
@@ -23,11 +24,17 @@ const schema = new Schema<ILessonComment>(
       required: true,
       index: true,
     },
+    parent: {
+      type: Schema.Types.ObjectId,
+      ref: "LessonComment",
+      default: null,
+      index: true,
+    },
     body: { type: String, required: true, trim: true, maxlength: 2000 },
     status: {
       type: String,
       enum: ["pending", "published", "rejected"],
-      default: "pending",
+      default: "published",
       index: true,
     },
     moderatedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },

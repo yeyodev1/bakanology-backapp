@@ -93,6 +93,23 @@ export async function getMe(
   }
 }
 
+export async function updateThemePreference(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    if (!req.user) throw new CustomError("Unauthorized", 401);
+    const user = await authService.updateThemePreference(
+      req.user.userId,
+      req.body.themePreference,
+    );
+    successResponse(res, { user }, "Theme preference updated successfully");
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function updateProfile(
   req: AuthRequest,
   res: Response,

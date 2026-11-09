@@ -7,6 +7,5 @@ export function getStatus() {
     isActive: now < deadline,
     annualPrice: Number(process.env.ANNUAL_PRICE),
     monthlyPrice: Number(process.env.MONTHLY_PRICE),
-    whatsappNumber: process.env.WHATSAPP_NUMBER,
   };
 }
