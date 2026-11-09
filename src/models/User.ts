@@ -24,6 +24,9 @@ export interface IUser extends Document {
   checkoutLockUntil: Date | null;
   createdByCheckout: boolean;
   themePreference: ThemePreference;
+  /** Primer y último login: Metrics los lee para saber si el cliente entró de verdad. */
+  firstLoginAt?: Date | null;
+  lastLoginAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -68,6 +71,8 @@ const userSchema = new Schema<IUser>(
       enum: themePreferences,
       default: "system",
     },
+    firstLoginAt: { type: Date, default: null },
+    lastLoginAt: { type: Date, default: null },
   },
   { timestamps: true },
 );
