@@ -92,3 +92,44 @@ export async function otorgarAccesoCliente(req: Request, res: Response, next: Ne
     next(error);
   }
 }
+
+/**
+ * GET /api/admin/ingresos-clientes?emails=a@x.com,b@y.com
+ * Metrics pregunta si esos correos ya entraron a la academia (primer y
+ * último login). Misma clave servidor a servidor que acceso-cliente.
+ */
+export async function ingresosClientes(req: Request, res: Response, next: NextFunction) {
+  try {
+    const clave = process.env.BAKANO_METRICS_KEY;
+    if (!clave || req.headers["x-bakano-key"] !== clave) {
+      res.status(401).json({ message: "Clave inválida" });
+      return;
+    }
+    const emails = String(req.query.emails ?? "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean)
+      .slice(0, 500);
+    if (!emails.length) {
+      res.status(400).json({ message: "Falta emails" });
+      return;
+    }
+    const users = await User.find({ email: { $in: emails } }).select("email firstLoginAt lastLoginAt accessUntil subscriptionStatus").lean();
+    const porCorreo = new Map(users.map((u) => [u.email, u]));
+    res.status(200).json({
+      data: emails.map((email) => {
+        const u = porCorreo.get(email);
+        return {
+          email,
+          existe: Boolean(u),
+          firstLoginAt: u?.firstLoginAt ?? null,
+          lastLoginAt: u?.lastLoginAt ?? null,
+          accessUntil: u?.accessUntil ?? null,
+          subscriptionStatus: u?.subscriptionStatus ?? null,
+        };
+      }),
+    });
+  } catch (error) {
+    next(error);
+  }
+}

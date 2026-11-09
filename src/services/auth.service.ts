@@ -108,6 +108,8 @@ export async function login(email: string, password: string) {
   });
 
   sendLoginEmail(user.email, user.name).catch(() => {});
+  const ahora = new Date();
+  User.updateOne({ _id: user._id }, { $set: { lastLoginAt: ahora, firstLoginAt: user.firstLoginAt ?? ahora } }).catch(() => {});
 
   return { token, user: sanitizeUser(user) };
 }
